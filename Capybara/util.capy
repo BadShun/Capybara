@@ -1,0 +1,5 @@
+var pi = 3.14;
+
+fn sum(num1, num2) {
+	return num1 + num2;
+}
