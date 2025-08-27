@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <math.h>
 
 int token_count = 0;
 
@@ -181,15 +182,136 @@ Token exp_add(Token left_value_token, Token right_value_token) {
 		double result_double = left_value + right_value;
 		int result_len = snprintf(NULL, 0, "%lf", result_double);
 		char *result_string = (char *)malloc(result_len + 1);
-		snprintf(result_string, result_len + 1, "%.10f", result_double);
+		snprintf(result_string, result_len + 1, "%lf", result_double);
 
 		result_token.type = Token_Float;
+		result_token.value = result_string;
+	} else {
+		int left_value = atoi(left_value_token.value);
+		int right_value = atoi(right_value_token.value);
+
+		int result_integer = left_value + right_value;
+		int result_len = snprintf(NULL, 0, "%d", result_integer);
+		char *result_string = (char *)malloc(result_len + 1);
+		snprintf(result_string, result_len + 1, "%d", result_integer);
+
+		result_token.type = Token_Integer;
 		result_token.value = result_string;
 	}
 
 	return result_token;
 }
 
+Token exp_subtract(Token left_value_token, Token right_value_token) {
+	Token result_token;
+
+	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
+		printf("在第%d行发生错误，原因：字符串不支持减法\n", left_value_token.line);
+		exit(EXIT_FAILURE);
+	} else if (left_value_token.type == Token_Float || right_value_token.type == Token_Float) {
+		double left_value = atof(left_value_token.value);
+		double right_value = atof(right_value_token.value);
+
+		double result_double = left_value - right_value;
+		int result_len = snprintf(NULL, 0, "%lf", result_double);
+		char *result_string = (char *)malloc(result_len + 1);
+		snprintf(result_string, result_len + 1, "%lf", result_double);
+
+		result_token.type = Token_Float;
+		result_token.value = result_string;
+	} else {
+		int left_value = atoi(left_value_token.value);
+		int right_value = atoi(right_value_token.value);
+
+		int result_integer = left_value - right_value;
+		int result_len = snprintf(NULL, 0, "%d", result_integer);
+		char *result_string = (char *)malloc(result_len + 1);
+		snprintf(result_string, result_len + 1, "%d", result_integer);
+
+		result_token.type = Token_Integer;
+		result_token.value = result_string;
+	}
+
+	return result_token;
+}
+
+Token exp_multiply(Token left_value_token, Token right_value_token) {
+	Token result_token;
+
+	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
+		printf("在第%d行发生错误，原因：字符串不支持乘法\n", left_value_token.line);
+		exit(EXIT_FAILURE);
+	} else if (left_value_token.type == Token_Float || right_value_token.type == Token_Float) {
+		double left_value = atof(left_value_token.value);
+		double right_value = atof(right_value_token.value);
+
+		double result_double = left_value * right_value;
+		int result_len = snprintf(NULL, 0, "%lf", result_double);
+		char *result_string = (char *)malloc(result_len + 1);
+		snprintf(result_string, result_len + 1, "%lf", result_double);
+
+		result_token.type = Token_Float;
+		result_token.value = result_string;
+	} else {
+		int left_value = atoi(left_value_token.value);
+		int right_value = atoi(right_value_token.value);
+
+		int result_integer = left_value * right_value;
+		int result_len = snprintf(NULL, 0, "%d", result_integer);
+		char *result_string = (char *)malloc(result_len + 1);
+		snprintf(result_string, result_len + 1, "%d", result_integer);
+
+		result_token.type = Token_Integer;
+		result_token.value = result_string;
+	}
+
+	return result_token;
+}
+
+Token exp_divide(Token left_value_token, Token right_value_token) {
+	Token result_token;
+
+	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
+		printf("在第%d行发生错误，原因：字符串不支持除法\n", left_value_token.line);
+		exit(EXIT_FAILURE);
+	}
+
+	if (atoi(right_value_token.value) == 0) {
+		printf("在第%d行发生错误，原因：不可以除以0\n", left_value_token.line);
+		exit(EXIT_FAILURE);
+	}
+
+	double left_value = atof(left_value_token.value);
+	double right_value = atof(right_value_token.value);
+
+	double result_double = left_value / right_value;
+	int result_len = snprintf(NULL, 0, "%lf", result_double);
+	char *result_string = (char *)malloc(result_len + 1);
+	snprintf(result_string, result_len + 1, "%lf", result_double);
+
+	result_token.type = Token_Float;
+	result_token.value = result_string;
+
+	return result_token;
+}
+
+Token exp_equal(Token left_value_token, Token right_value_token) {
+	Token result_token;
+
+	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
+		result_token.type = Token_Bool;
+		result_token.value = strcmp(left_value_token.value, right_value_token.value) == 0 ? "true" : "false";
+	} else {
+		double left_value = atof(left_value_token.value);
+		double right_value = atof(right_value_token.value);
+		double eps = 1e-9;
+
+		result_token.type = Token_Float;
+		result_token.value = fabs(left_value - right_value) < eps ? "true" : "false";
+	}
+
+	return result_token;
+}
 
 Token parse_expression(Parser *parser, TokenType end_token_type) {
 	Token *exp_buffer = NULL;
@@ -314,35 +436,55 @@ Token parse_expression(Parser *parser, TokenType end_token_type) {
 		postfix_exp_buffer[postfix_exp_buffer_length - 1] = pop(op_stack);
 	}
 
-	Token left_value_token;
-	left_value_token.value = NULL;
-	Token right_value_token;
-	right_value_token.value = NULL;
+	Stack *value_stack = (Stack *)malloc(sizeof(Stack));
+	stack_init(value_stack);
 
 	for (int i = 0; i < postfix_exp_buffer_length; i++) {
 		print_token(postfix_exp_buffer[i]);
 		Token exp_token = postfix_exp_buffer[i];
-		
+		Token left_value_token;
+		Token right_value_token;
+
 		switch (exp_token.type) {
 			case Token_Integer:
 			case Token_Float:
 			case Token_String:
-				if (left_value_token.value == NULL || right_value_token.value != NULL) {
-					left_value_token = exp_token;
-				} else {
-					right_value_token = exp_token;
-				}
+				push(value_stack, exp_token);
 				continue;
-		}
-
-		switch (exp_token.type) {
-			case Token_Add:
-				left_value_token = exp_add(left_value_token, right_value_token);
-				right_value_token.value = NULL;
+			case Token_Add: {
+				right_value_token = pop(value_stack);
+				left_value_token = pop(value_stack);
+				push(value_stack, exp_add(left_value_token, right_value_token));
+				break;
+			}
+			case Token_Subtract: {
+				right_value_token = pop(value_stack);
+				left_value_token = pop(value_stack);
+				push(value_stack, exp_subtract(left_value_token, right_value_token));
+				break;
+			}
+			case Token_Multiply: {
+				right_value_token = pop(value_stack);
+				left_value_token = pop(value_stack);
+				push(value_stack, exp_multiply(left_value_token, right_value_token));
+				break;
+			}
+			case Token_Divide: {
+				right_value_token = pop(value_stack);
+				left_value_token = pop(value_stack);
+				push(value_stack, exp_divide(left_value_token, right_value_token));
+				break;
+			}
+			case Token_Equal: {
+				right_value_token = pop(value_stack);
+				left_value_token = pop(value_stack);
+				push(value_stack, exp_equal(left_value_token, right_value_token));
+				break;
+			}
 		}
 	}
 
-	exp_result_token = left_value_token;
+	exp_result_token = pop(value_stack);
 	print_token(exp_result_token);
 
 	return exp_result_token;
