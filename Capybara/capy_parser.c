@@ -15,8 +15,6 @@ Parser *parser;
 Module *module;
 char *name;
 
-
-
 void var_set_value();
 
 Token peek(Parser *parser) {
@@ -167,17 +165,29 @@ int get_priority(Token op_token) {
 }
 
 Token exp_add(Token left_value_token, Token right_value_token) {
+	Token result_token;
+
 	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
 		char *result = (char *)malloc(strlen(left_value_token.value) + strlen(right_value_token.value));
 		strcpy(result, left_value_token.value);
 		strcat(result, right_value_token.value);
 
-		Token result_token = { Token_String, result, left_value_token.line };
-
-		return result_token;
+		result_token.type = Token_String;
+		result_token.value = result;
 	} else if (left_value_token.type == Token_Float || right_value_token.type == Token_Float) {
-		
+		double left_value = atof(left_value_token.value);
+		double right_value = atof(right_value_token.value);
+
+		double result_double = left_value + right_value;
+		int result_len = snprintf(NULL, 0, "%lf", result_double);
+		char *result_string = (char *)malloc(result_len + 1);
+		snprintf(result_string, result_len + 1, "%.10f", result_double);
+
+		result_token.type = Token_Float;
+		result_token.value = result_string;
 	}
+
+	return result_token;
 }
 
 
