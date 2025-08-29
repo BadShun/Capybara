@@ -1,3 +1,1 @@
-#var bool_test = !(3 + 5 * 2 < 20 and false) or (10 / 2 == 5 and true);
-#var test = true and false or 3 + 4 * 2 > 10 and !false or 7 == 7;
-var test = 3 - 2 == 6 - 2 * 2 - 1;
+var test = 2 + 3 == +5;

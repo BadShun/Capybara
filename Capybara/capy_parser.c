@@ -159,6 +159,9 @@ int get_priority(Token op_token) {
 			return 6;
 		case Token_Not:
 			return 7;
+		case Token_Positive:
+		case Token_Negative:
+			return 8;
 		default:
 			printf("在第%d行发生错误，原因：未知操作符\n", op_token.line);
 			exit(EXIT_FAILURE);
@@ -313,6 +316,45 @@ Token exp_equal(Token left_value_token, Token right_value_token) {
 	return result_token;
 }
 
+Token exp_positive(Token value_token) {
+	Token result_token;
+
+	if (value_token.type == Token_String) {
+		printf("在第%d行发生错误，原因：字符串不支持取正\n", value_token.line);
+		exit(EXIT_FAILURE);
+	}
+	else {
+		char *result = (char *)malloc(strlen(value_token.value) + 1);
+		strcpy(result, "+");
+		strcat(result, value_token.value);
+
+		result_token.line = value_token.line;
+		result_token.type = value_token.type;
+		result_token.value = result;
+	}
+
+	return result_token;
+}
+
+Token exp_negative(Token value_token) {
+	Token result_token;
+
+	if (value_token.type == Token_String) {
+		printf("在第%d行发生错误，原因：字符串不支持取负\n", value_token.line);
+		exit(EXIT_FAILURE);
+	} else {
+		char *result = (char *)malloc(strlen(value_token.value) + 1);
+		strcpy(result, "-");
+		strcat(result, value_token.value);
+
+		result_token.line = value_token.line;
+		result_token.type = value_token.type;
+		result_token.value = result;
+	}
+
+	return result_token;
+}
+
 Token parse_expression(Parser *parser, TokenType end_token_type) {
 	Token *exp_buffer = NULL;
 	Token exp_result_token;
@@ -377,12 +419,47 @@ Token parse_expression(Parser *parser, TokenType end_token_type) {
 					exp_buffer[exp_buffer_length - 1] = bool_token;
 				}
 			} else {
-				if (token.type == Token_Subtract && exp_buffer_length == 1) { // 处理负号
-					consume(parser);
-					exp_buffer = (Token *)realloc(exp_buffer, (++exp_buffer_length) * sizeof(Token));
-					Token zero_token = { Token_Integer, "0", token.line };
-					exp_buffer[0] = zero_token;
-					exp_buffer[1] = token;
+				if (token.type == Token_Add) {
+					if (exp_buffer_length == 1) {
+						token.type = Token_Positive;
+						exp_buffer[exp_buffer_length - 1] = token;
+						consume(parser);
+					}
+					else {
+						Token previous_token = exp_buffer[exp_buffer_length - 2];
+						switch (previous_token.type) {
+							case Token_Integer:
+							case Token_Float:
+							case Token_String:
+								exp_buffer[exp_buffer_length - 1] = token;
+								consume(parser);
+								break;
+							default:
+								token.type = Token_Positive;
+								exp_buffer[exp_buffer_length - 1] = token;
+								consume(parser);
+						}
+					}
+				} else if (token.type == Token_Subtract) {
+					if (exp_buffer_length == 1) {
+						token.type = Token_Negative;
+						exp_buffer[exp_buffer_length - 1] = token;
+						consume(parser);
+					} else {
+						Token previous_token = exp_buffer[exp_buffer_length - 2];
+						switch (previous_token.type) {
+							case Token_Integer:
+							case Token_Float:
+							case Token_String:
+								exp_buffer[exp_buffer_length - 1] = token;
+								consume(parser);
+								break;
+							default:
+								token.type = Token_Negative;
+								exp_buffer[exp_buffer_length - 1] = token;
+								consume(parser);
+						}
+					}
 				} else if (match(parser, Token_LeftParen)) { // 处理括号
 					exp_buffer[exp_buffer_length - 1] = parse_expression(parser, Token_RightParen);
 					match(parser, Token_RightParen);
@@ -479,6 +556,16 @@ Token parse_expression(Parser *parser, TokenType end_token_type) {
 				right_value_token = pop(value_stack);
 				left_value_token = pop(value_stack);
 				push(value_stack, exp_equal(left_value_token, right_value_token));
+				break;
+			}
+			case Token_Positive: {
+				Token value_token = pop(value_stack);
+				push(value_stack, exp_positive(value_token));
+				break;
+			}
+			case Token_Negative: {
+				Token value_token = pop(value_stack);
+				push(value_stack, exp_negative(value_token));
 				break;
 			}
 		}

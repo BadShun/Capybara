@@ -9,6 +9,8 @@ typedef enum {
 	Token_Float,
 	Token_Bool,
 	Token_String,
+	Token_Positive,
+	Token_Negative,
 	Token_Add,
 	Token_Subtract,
 	Token_Multiply,

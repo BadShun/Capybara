@@ -105,7 +105,6 @@ Token next_token() {
 	if (*src == '\"') {
 		next();
 		int i = 0;
-		buffer[i++] = next();
 		
 		while (*src != '\n' && *src != '\0') {
 			if (*src == '\"' && buffer[i - 1] != '\\') {
@@ -228,6 +227,12 @@ void print_token(Token token) {
 		break;
 	case Token_String:
 		printf("String\n");
+		break;
+	case Token_Positive:
+		printf("Positive\n");
+		break;
+	case Token_Negative:
+		printf("Negative\n");
 		break;
 	case Token_Add:
 		printf("Add\n");
