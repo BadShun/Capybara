@@ -209,7 +209,7 @@ Token exp_subtract(Token left_value_token, Token right_value_token) {
 	Token result_token;
 
 	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
-		printf("在第%d行发生错误，原因：字符串不支持减法\n", left_value_token.line);
+		printf("在第%d行发生错误，原因：字符串不支持减法运算\n", left_value_token.line);
 		exit(EXIT_FAILURE);
 	} else if (left_value_token.type == Token_Float || right_value_token.type == Token_Float) {
 		double left_value = atof(left_value_token.value);
@@ -242,7 +242,7 @@ Token exp_multiply(Token left_value_token, Token right_value_token) {
 	Token result_token;
 
 	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
-		printf("在第%d行发生错误，原因：字符串不支持乘法\n", left_value_token.line);
+		printf("在第%d行发生错误，原因：字符串不支持乘法运算\n", left_value_token.line);
 		exit(EXIT_FAILURE);
 	} else if (left_value_token.type == Token_Float || right_value_token.type == Token_Float) {
 		double left_value = atof(left_value_token.value);
@@ -275,11 +275,12 @@ Token exp_divide(Token left_value_token, Token right_value_token) {
 	Token result_token;
 
 	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
-		printf("在第%d行发生错误，原因：字符串不支持除法\n", left_value_token.line);
+		printf("在第%d行发生错误，原因：字符串不支持除法运算\n", left_value_token.line);
 		exit(EXIT_FAILURE);
 	}
 
-	if (atoi(right_value_token.value) == 0) {
+	double eps = 1e-9;
+	if (atof(right_value_token.value) < eps) {
 		printf("在第%d行发生错误，原因：不可以除以0\n", left_value_token.line);
 		exit(EXIT_FAILURE);
 	}
@@ -300,17 +301,176 @@ Token exp_divide(Token left_value_token, Token right_value_token) {
 
 Token exp_equal(Token left_value_token, Token right_value_token) {
 	Token result_token;
+	result_token.type = Token_Bool;
 
 	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
-		result_token.type = Token_Bool;
 		result_token.value = strcmp(left_value_token.value, right_value_token.value) == 0 ? "true" : "false";
 	} else {
 		double left_value = atof(left_value_token.value);
 		double right_value = atof(right_value_token.value);
 		double eps = 1e-9;
 
-		result_token.type = Token_Float;
 		result_token.value = fabs(left_value - right_value) < eps ? "true" : "false";
+	}
+
+	return result_token;
+}
+
+Token exp_not_equal(Token left_value_token, Token right_value_token) {
+	Token result_token = exp_equal(left_value_token, right_value_token);
+	result_token.value = strcmp(result_token.value, "true") == 0 ? "false" : "true";
+
+	return result_token;
+}
+
+Token exp_or(Token left_value_token, Token right_value_token) {
+	Token result_token;
+	result_token.type = Token_Bool;
+
+	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
+		result_token.value = "true";
+	} else if (left_value_token.type == Token_Bool && strcmp(left_value_token.value, "true") == 0) {
+		result_token.value = "true";
+	} else if (right_value_token.type == Token_Bool && strcmp(right_value_token.value, "true") == 0) {
+		result_token.value = "true";
+	} else {
+		double left_value = atof(left_value_token.value);
+		double right_value = atof(right_value_token.value);
+		double eps = 1e-9;
+		
+		result_token.value = (left_value > eps || right_value > eps) ? "true" : "false";
+	}
+
+	return result_token;
+}
+
+Token exp_and(Token left_value_token, Token right_value_token) {
+	Token result_token;
+	result_token.type = Token_Bool;
+
+	bool left_value_bool;
+	bool right_value_bool;
+
+	if (left_value_token.type == Token_String) {
+		left_value_bool = true;
+	} else if (left_value_token.type == Token_Bool) {
+		if (strcmp(left_value_token.value, "true") == 0) {
+			left_value_bool = true;
+		} else {
+			left_value_bool = false;
+		}
+	} else {
+		double left_value = atof(left_value_token.value);
+		double eps = 1e-9;
+
+		left_value_bool = left_value > eps;
+	}
+
+	if (right_value_token.type == Token_String) {
+		right_value_bool = true;
+	} else if (right_value_token.type == Token_Bool) {
+		if (strcmp(right_value_token.value, "true") == 0) {
+			right_value_bool = true;
+		} else {
+			right_value_bool = false;
+		}
+	} else {
+		double right_value = atof(right_value_token.value);
+		double eps = 1e-9;
+
+		right_value_bool = right_value > eps;
+	}
+
+	if (left_value_bool && right_value_bool) {
+		result_token.value = "true";
+	} else {
+		result_token.value = "false";
+	}
+
+	return result_token;
+}
+
+Token exp_greater_than(Token left_value_token, Token right_value_token) {
+	Token result_token;
+	result_token.type = Token_Bool;
+
+	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
+		printf("在第%d行发生错误，原因：字符串不支持大于运算\n", left_value_token.line);
+		exit(EXIT_FAILURE);
+	} else {
+		double left_value = atof(left_value_token.value);
+		double right_value = atof(right_value_token.value);
+
+		result_token.value = left_value > right_value ? "true" : "false";
+	}
+
+	return result_token;
+}
+
+Token exp_less_than(Token left_value_token, Token right_value_token) {
+	Token result_token;
+	result_token.type = Token_Bool;
+
+	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
+		printf("在第%d行发生错误，原因：字符串不支持小于运算\n", left_value_token.line);
+		exit(EXIT_FAILURE);
+	} else {
+		double left_value = atof(left_value_token.value);
+		double right_value = atof(right_value_token.value);
+
+		result_token.value = left_value < right_value ? "true" : "false";
+	}
+
+	return result_token;
+}
+
+Token exp_greater_than_equal(Token left_value_token, Token right_value_token) {
+	Token result_token;
+	result_token.type = Token_Bool;
+	Token greater_than_result_token = exp_greater_than(left_value_token, right_value_token);
+
+	if (strcmp(greater_than_result_token.value, "true") == 0) {
+		result_token.value = "true";
+	} else {
+		Token equal_result_token = exp_equal(left_value_token, right_value_token);
+		result_token.value = equal_result_token.value;
+	}
+
+	return result_token;
+}
+
+Token exp_less_than_equal(Token left_value_token, Token right_value_token) {
+	Token result_token;
+	result_token.type = Token_Bool;
+	Token less_than_result_token = exp_less_than(left_value_token, right_value_token);
+
+	if (strcmp(less_than_result_token.value, "true") == 0) {	
+		result_token.value = "true";
+	} else {
+		Token equal_result_token = exp_equal(left_value_token, right_value_token);
+		result_token.value = equal_result_token.value;
+	}
+
+	return result_token;
+}
+
+Token exp_not(Token value_token) {
+	Token result_token;
+	result_token.type = Token_Bool;
+
+	if (value_token.type == Token_String) {
+		result_token.value = "false";
+	} else if (value_token.type == Token_Bool) {
+		result_token.value = strcmp(result_token.value, "true") == 0 ? "false" : "true";
+	} else {
+		double value = atof(value_token.value);
+		double eps = 1e-9;
+
+		if (value > eps) {
+			result_token.value = "false";
+		} else {
+			result_token.value = "true";
+		}
 	}
 
 	return result_token;
@@ -322,8 +482,7 @@ Token exp_positive(Token value_token) {
 	if (value_token.type == Token_String) {
 		printf("在第%d行发生错误，原因：字符串不支持取正\n", value_token.line);
 		exit(EXIT_FAILURE);
-	}
-	else {
+	} else {
 		char *result = (char *)malloc(strlen(value_token.value) + 1);
 		strcpy(result, "+");
 		strcat(result, value_token.value);
@@ -424,8 +583,7 @@ Token parse_expression(Parser *parser, TokenType end_token_type) {
 						token.type = Token_Positive;
 						exp_buffer[exp_buffer_length - 1] = token;
 						consume(parser);
-					}
-					else {
+					} else {
 						Token previous_token = exp_buffer[exp_buffer_length - 2];
 						switch (previous_token.type) {
 							case Token_Integer:
@@ -558,6 +716,48 @@ Token parse_expression(Parser *parser, TokenType end_token_type) {
 				push(value_stack, exp_equal(left_value_token, right_value_token));
 				break;
 			}
+			case Token_NotEqual: {
+				right_value_token = pop(value_stack);
+				left_value_token = pop(value_stack);
+				push(value_stack, exp_not_equal(left_value_token, right_value_token));
+				break;
+			}
+			case Token_Or: {
+				right_value_token = pop(value_stack);
+				left_value_token = pop(value_stack);
+				push(value_stack, exp_or(left_value_token, right_value_token));
+				break;
+			}
+			case Token_And: {
+				right_value_token = pop(value_stack);
+				left_value_token = pop(value_stack);
+				push(value_stack, exp_and(left_value_token, right_value_token));
+				break;
+			}
+			case Token_GreaterThan: {
+				right_value_token = pop(value_stack);
+				left_value_token = pop(value_stack);
+				push(value_stack, exp_greater_than(left_value_token, right_value_token));
+				break;
+			}
+			case Token_LessThan: {
+				right_value_token = pop(value_stack);
+				left_value_token = pop(value_stack);
+				push(value_stack, exp_less_than(left_value_token, right_value_token));
+				break;
+			}
+			case Token_GreaterThanEqual: {
+				right_value_token = pop(value_stack);
+				left_value_token = pop(value_stack);
+				push(value_stack, exp_greater_than_equal(left_value_token, right_value_token));
+				break;
+			}
+			case Token_LessThanEqual: {
+				right_value_token = pop(value_stack);
+				left_value_token = pop(value_stack);
+				push(value_stack, exp_less_than_equal(left_value_token, right_value_token));
+				break;
+			}
 			case Token_Positive: {
 				Token value_token = pop(value_stack);
 				push(value_stack, exp_positive(value_token));
@@ -566,6 +766,11 @@ Token parse_expression(Parser *parser, TokenType end_token_type) {
 			case Token_Negative: {
 				Token value_token = pop(value_stack);
 				push(value_stack, exp_negative(value_token));
+				break;
+			}
+			case Token_Not: {
+				Token value_token = pop(value_stack);
+				push(value_stack, exp_not(value_token));
 				break;
 			}
 		}
