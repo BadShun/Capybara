@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-const char *keywords[] = { "var", "true", "false", "and", "or", "if", "elif", "esle", "while", "fn", "return"};
+const char *keywords[] = { "var", "true", "false", "and", "or", "if", "elif", "esle", "while", "fn", "return" };
 const int keywords_count = sizeof(keywords) / sizeof(char *);
 
 char *src;
@@ -21,9 +21,9 @@ char next() {
 }
 
 Token next_token() {
-	// token»º³åÇø
+	// tokenç¼“å†²åŒº
 	char buffer[1024];
-	// Ìø¹ı¿Õ°××Ö·û
+	// è·³è¿‡ç©ºç™½å­—ç¬¦
 	while (*src == ' ' || *src == '\n' || *src == '\t') {
 		if (*src == '\n') {
 			current_line++;
@@ -31,7 +31,7 @@ Token next_token() {
 
 		next();
 	}
-	// Ìø¹ı×¢ÊÍ
+	// è·³è¿‡æ³¨é‡Š
 	if (*src == '#') {
 		next();
 
@@ -50,7 +50,7 @@ Token next_token() {
 
 		return next_token();
 	}
-	// Éú³É¹Ø¼ü×ÖºÍ±êÊ¶·ûtoken
+	// ç”Ÿæˆå…³é”®å­—å’Œæ ‡è¯†ç¬¦token
 	if ((*src >= 'a' && *src <= 'z') || (*src >= 'A' && *src <= 'Z') || *src == '_') {
 		int i = 0;
 		buffer[i++] = next();
@@ -76,7 +76,7 @@ Token next_token() {
 
 		return token;
 	}
-	// Éú³ÉÊı×Ötoken£¨°üº¬Ğ¡Êı£©
+	// ç”Ÿæˆæ•°å­—tokenï¼ˆåŒ…å«å°æ•°ï¼‰
 	if (*src >= '0' && *src <= '9') {
 		int i = 0;
 		bool is_float = false;
@@ -86,8 +86,8 @@ Token next_token() {
 			if (*src == '.' && !is_float) {
 				is_float = true;
 			} else if (*src == '.' && is_float) {
-				// Èç¹ûÒÑ¾­ÊÇĞ¡ÊıµãÁË£¬±¨´í
-				printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£º·Ç·¨µÄÊı×Ö£¨¶à¸öĞ¡Êıµã£©", current_line);
+				// å¦‚æœå·²ç»æ˜¯å°æ•°ç‚¹äº†ï¼ŒæŠ¥é”™
+				printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šéæ³•çš„æ•°å­—ï¼ˆå¤šä¸ªå°æ•°ç‚¹ï¼‰", current_line);
 				exit(EXIT_FAILURE);
 			}
 
@@ -101,11 +101,11 @@ Token next_token() {
 		Token token = { is_float ? Token_Float : Token_Integer, token_value, current_line };
 		return token;
 	}
-	// Éú³É×Ö·û´®token£¨Ë«ÒıºÅ°ü¹üµÄ×Ö·û´®£©
+	// ç”Ÿæˆå­—ç¬¦ä¸²tokenï¼ˆåŒå¼•å·åŒ…è£¹çš„å­—ç¬¦ä¸²ï¼‰
 	if (*src == '\"') {
 		next();
 		int i = 0;
-		
+
 		while (*src != '\n' && *src != '\0') {
 			if (*src == '\"' && buffer[i - 1] != '\\') {
 				next();
@@ -120,54 +120,54 @@ Token next_token() {
 			}
 		}
 
-		printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£º×Ö·û´®Î´±ÕºÏ", current_line);
+		printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šå­—ç¬¦ä¸²æœªé—­åˆ", current_line);
 		exit(EXIT_FAILURE);
 	}
-	// Éú³É·ûºÅtoken (+ - * / = ; . , ! != == < > <= >= ( ) { } " )
+	// ç”Ÿæˆç¬¦å·token (+ - * / = ; . , ! != == < > <= >= ( ) { } " )
 	switch (*src) {
 		char *token_value;
 		Token token;
-		case '+':
-			return set_token(Token_Add);
-		case '-':
-			return set_token(Token_Subtract);
-		case '*':
-			return set_token(Token_Multiply);
-		case '/':
-			return set_token(Token_Divide);
-		case '=':
-			return set_complex_token(buffer, '=', Token_Equal, Token_Assign);
-		case ';':
-			return set_token(Token_Separator);
-		case '.':
-			return set_token(Token_Dot);
-		case ',':
-			return set_token(Token_Comma);
-		case '!':
-			return set_complex_token(buffer, '=', Token_NotEqual, Token_Not);
-		case '<':
-			return set_complex_token(buffer, '=', Token_LessThanEqual, Token_LessThan);
-		case '>':
-			return set_complex_token(buffer, '=', Token_GreaterThanEqual, Token_GreaterThan);
-		case '(':
-			return set_token(Token_LeftParen);
-		case ')':
-			return set_token(Token_RightParen);
-		case '{':
-			return set_token(Token_LeftBrace);
-		case '}':
-			return set_token(Token_RightBrace);
+	case '+':
+		return set_token(Token_Add);
+	case '-':
+		return set_token(Token_Subtract);
+	case '*':
+		return set_token(Token_Multiply);
+	case '/':
+		return set_token(Token_Divide);
+	case '=':
+		return set_complex_token(buffer, '=', Token_Equal, Token_Assign);
+	case ';':
+		return set_token(Token_Separator);
+	case '.':
+		return set_token(Token_Dot);
+	case ',':
+		return set_token(Token_Comma);
+	case '!':
+		return set_complex_token(buffer, '=', Token_NotEqual, Token_Not);
+	case '<':
+		return set_complex_token(buffer, '=', Token_LessThanEqual, Token_LessThan);
+	case '>':
+		return set_complex_token(buffer, '=', Token_GreaterThanEqual, Token_GreaterThan);
+	case '(':
+		return set_token(Token_LeftParen);
+	case ')':
+		return set_token(Token_RightParen);
+	case '{':
+		return set_token(Token_LeftBrace);
+	case '}':
+		return set_token(Token_RightBrace);
 	}
 
-	//½áÎ²
+	//ç»“å°¾
 	if (*src == '\0') {
-		// Éú³ÉEOF token
+		// ç”ŸæˆEOF token
 		Token token = { Token_EOF, NULL, current_line };
 		return token;
 	}
 
-	// ÆäËûÇé¿ö
-	printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£ºÎ´Öª·ûºÅ%c", current_line, *src);
+	// å…¶ä»–æƒ…å†µ
+	printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šæœªçŸ¥ç¬¦å·%c", current_line, *src);
 	exit(EXIT_FAILURE);
 }
 
@@ -210,101 +210,101 @@ Token set_complex_token(char *buffer, char condition, TokenType true_token_type,
 void print_token(Token token) {
 	printf("Token:%-25sTokenType:", token.value);
 	switch (token.type) {
-	case Token_Keyword:
-		printf("Keyword\n");
-		break;
-	case Token_Identifier:
-		printf("Identifier\n");
-		break;
-	case Token_Integer:
-		printf("Integer\n");
-		break;
-	case Token_Float:
-		printf("Float\n");
-		break;
-	case Token_Bool:
-		printf("Bool\n");
-		break;
-	case Token_String:
-		printf("String\n");
-		break;
-	case Token_Positive:
-		printf("Positive\n");
-		break;
-	case Token_Negative:
-		printf("Negative\n");
-		break;
-	case Token_Add:
-		printf("Add\n");
-		break;
-	case Token_Subtract:
-		printf("Subtract\n");
-		break;
-	case Token_Multiply:
-		printf("Multiply\n");
-		break;
-	case Token_Divide:
-		printf("Divide\n");
-		break;
-	case Token_Assign:
-		printf("Assign\n");
-		break;
-	case Token_Separator:
-		printf("Separator\n");
-		break;
-	case Token_LeftParen:
-		printf("LeftParen\n");
-		break;
-	case Token_RightParen:
-		printf("RightParen\n");
-		break;
-	case Token_LeftBrace:
-		printf("LeftBrace\n");
-		break;
-	case Token_RightBrace:
-		printf("RightBrace\n");
-		break;
-	case Token_GreaterThan:
-		printf("GreaterThan\n");
-		break;
-	case Token_LessThan:
-		printf("LessThen\n");
-		break;
-	case Token_GreaterThanEqual:
-		printf("GreaterThanEqual\n");
-		break;
-	case Token_LessThanEqual:
-		printf("LessThenEqual\n");
-		break;
-	case Token_Equal:
-		printf("Equal\n");
-		break;
-	case Token_NotEqual:
-		printf("NotEqual\n");
-		break;
-	case Token_And:
-		printf("And\n");
-		break;
-	case Token_Or:
-		printf("Or\n");
-		break;
-	case Token_Not:
-		printf("Not\n");
-		break;
-	case Token_Dot:
-		printf("Dot\n");
-		break;
-	case Token_Comma:
-		printf("Comma\n");
-		break;
-	case Token_Quote:
-		printf("Quote\n");
-		break;
-	case Token_Unknown:
-		printf("Unknown\n");
-		break;
-	case Token_EOF:
-		printf("EOF\n");
-		break;
+		case Token_Keyword:
+			printf("Keyword\n");
+			break;
+		case Token_Identifier:
+			printf("Identifier\n");
+			break;
+		case Token_Integer:
+			printf("Integer\n");
+			break;
+		case Token_Float:
+			printf("Float\n");
+			break;
+		case Token_Bool:
+			printf("Bool\n");
+			break;
+		case Token_String:
+			printf("String\n");
+			break;
+		case Token_Positive:
+			printf("Positive\n");
+			break;
+		case Token_Negative:
+			printf("Negative\n");
+			break;
+		case Token_Add:
+			printf("Add\n");
+			break;
+		case Token_Subtract:
+			printf("Subtract\n");
+			break;
+		case Token_Multiply:
+			printf("Multiply\n");
+			break;
+		case Token_Divide:
+			printf("Divide\n");
+			break;
+		case Token_Assign:
+			printf("Assign\n");
+			break;
+		case Token_Separator:
+			printf("Separator\n");
+			break;
+		case Token_LeftParen:
+			printf("LeftParen\n");
+			break;
+		case Token_RightParen:
+			printf("RightParen\n");
+			break;
+		case Token_LeftBrace:
+			printf("LeftBrace\n");
+			break;
+		case Token_RightBrace:
+			printf("RightBrace\n");
+			break;
+		case Token_GreaterThan:
+			printf("GreaterThan\n");
+			break;
+		case Token_LessThan:
+			printf("LessThen\n");
+			break;
+		case Token_GreaterThanEqual:
+			printf("GreaterThanEqual\n");
+			break;
+		case Token_LessThanEqual:
+			printf("LessThenEqual\n");
+			break;
+		case Token_Equal:
+			printf("Equal\n");
+			break;
+		case Token_NotEqual:
+			printf("NotEqual\n");
+			break;
+		case Token_And:
+			printf("And\n");
+			break;
+		case Token_Or:
+			printf("Or\n");
+			break;
+		case Token_Not:
+			printf("Not\n");
+			break;
+		case Token_Dot:
+			printf("Dot\n");
+			break;
+		case Token_Comma:
+			printf("Comma\n");
+			break;
+		case Token_Quote:
+			printf("Quote\n");
+			break;
+		case Token_Unknown:
+			printf("Unknown\n");
+			break;
+		case Token_EOF:
+			printf("EOF\n");
+			break;
 	}
 }

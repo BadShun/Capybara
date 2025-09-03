@@ -79,18 +79,51 @@ void parse_init(char *file_name) {
 void parse_program(char *file_name) {
 	parse_init(file_name);
 
+	parse_statement(parser);
+}
+
+void parse_statement(Parser *parser) {
 	while (true) {
 		Token token = peek(parser);
-		
+
 		if (token.type == Token_EOF) {
 			break;
 		}
 
-		if (strcmp(token.value, "var") == 0) {
-			parse_var_declare(parser);
+		if (token.type == Token_Keyword) {
+			if (strcmp(token.value, "var") == 0) {
+				parse_var_declare(parser);
+			}
+		} else if (token.type == Token_Identifier) {
+			Token name_token = consume(parser);
+			token = peek(parser);
+
+			if (token.type == Token_Assign) {
+				parse_assign(parser, name_token);
+			} else if (token.type == Token_LeftParen) {
+				// 解析函数
+				printf("function call\n");
+			} else {
+				printf("在第%d行发生错误，原因：缺少可修改的左值\n", name_token.line);
+				exit(EXIT_FAILURE);
+			}
+
 		} else {
 			consume(parser);
 		}
+	}
+}
+
+VariableType mapping_token_type(TokenType token_type) {
+	switch (token_type) {
+		case Token_Integer:
+			return Variable_INT;
+		case Token_Float:
+			return Variable_FLOAT;
+		case Token_Bool:
+			return Variable_BOOL;
+		case Token_String:
+			return Variable_STRING;
 	}
 }
 
@@ -110,26 +143,47 @@ void parse_var_declare(Parser *parser) {
 			}
 		}
 
-		module->variables = (Variable *)realloc(module->variables, (++module->variable_count) * sizeof(Variable));
+		module->variables = (Variable *)realloc(module->variables, (module->variable_count + 1) * sizeof(Variable));
 		var.variable_name = _strdup(name_token.value);
+		var.value.variable_value = NULL;
 	} else {
 		printf("在第%d行发生错误，原因：变量名缺失或非法的标识符%s\n", name_token.line, name_token.value);
 		exit(EXIT_FAILURE);
 	}
 
 	if (match(parser, Token_Assign)) {
-		parse_expression(parser, Token_Separator);
+		Token exp_result = parse_expression(parser);
+		var.value.variable_value = exp_result.value;
+		var.variable_type = mapping_token_type(exp_result.type);
 	}
 
 	if (match(parser, Token_Separator)) {
-		module->variables[module->variable_count - 1] = var;
+		module->variables[module->variable_count++] = var;
 	} else {
 		printf("在第%d行发生错误，原因：缺少分号\n", name_token.line);
+		exit(EXIT_FAILURE);
 	}
 }
 
-void parse_assign(Parser *parser) {
-	
+void parse_assign(Parser *parser, Token name_token) {
+	match(parser, Token_Assign);
+
+	bool find = false;
+
+	Variable var;
+	for (int i = 0; i < module->variable_count; i++) {
+		if (strcmp(module->variables[i].variable_name, name_token.value) == 0) {
+			find = true;
+			Token exp_result = parse_expression(parser);
+			module->variables[i].value.variable_value = exp_result.value;
+			module->variables[i].variable_type = mapping_token_type(exp_result.type);
+		}
+	}
+
+	if (!find) {
+		printf("在第%d行发生错误，原因：变量%s未声明\n", name_token.line, name_token.type);
+		exit(EXIT_FAILURE);
+	}
 }
 
 int get_priority(Token op_token) {
@@ -514,9 +568,11 @@ Token exp_negative(Token value_token) {
 	return result_token;
 }
 
-Token parse_expression(Parser *parser, TokenType end_token_type) {
+Token parse_expression(Parser *parser) {
 	Token *exp_buffer = NULL;
 	Token exp_result_token;
+	TokenType end_token_types[] = { Token_Separator, Token_RightParen, Token_Comma };
+	int end_token_types_len = sizeof(end_token_types) / sizeof(TokenType);
 	memset(&exp_result_token, 0, sizeof(Token));
 	int exp_buffer_length = 0;
 
@@ -524,32 +580,39 @@ Token parse_expression(Parser *parser, TokenType end_token_type) {
 		Token token = peek(parser);
 
 		if (token.type == Token_EOF) {
-			switch (end_token_type) {
-				case Token_Separator:
-					printf("在第%d行发生错误，原因：缺少表达式结束符%s\n", token.line, ";");
-					exit(EXIT_FAILURE);
-				default:
-					printf("在第%d行发生错误，原因：缺少表达式结束符\n", token.line);
-					exit(EXIT_FAILURE);
+			printf("在第%d行发生错误，原因：缺少表达式结束符\n", token.line);
+			exit(EXIT_FAILURE);
+		}
+
+		bool exp_end_flag = false;
+
+		for (int i = 0; i < end_token_types_len; i++) {
+			if (token.type == end_token_types[i]) {
+				exp_end_flag = true;
 			}
 		}
 
-		if (token.type == end_token_type) {
+		if (exp_end_flag) {
 			break;
-		} else {
-			exp_buffer = (Token *)realloc(exp_buffer, (++exp_buffer_length) * sizeof(Token));
+		}
 
-			if (match(parser, Token_Identifier)) {
-				if (match(parser, Token_LeftParen)) {
+		exp_buffer = (Token *)realloc(exp_buffer, (++exp_buffer_length) * sizeof(Token));
 
-				} else if (match(parser, Token_Dot)) {
-				
-				} else {
-					for (int i = 0; i < module->variable_count; i++) {
-						if (strcmp(module->variables[i].variable_name, token.value) == 0) {
-							Variable var = module->variables[i];
+		if (match(parser, Token_Identifier)) {
+			if (match(parser, Token_LeftParen)) {
+				// 调用函数
+			} else if (match(parser, Token_Dot)) {
+
+			} else {
+				bool find = false;
+				for (int i = 0; i < module->variable_count; i++) {
+					if (strcmp(module->variables[i].variable_name, token.value) == 0) {
+						find = true;
+						Variable var = module->variables[i];
+
+						if (var.value.variable_value) {
 							token.value = var.value.variable_value;
-							
+
 							switch (var.variable_type) {
 								case Variable_INT:
 									token.type = Token_Integer;
@@ -566,65 +629,73 @@ Token parse_expression(Parser *parser, TokenType end_token_type) {
 							}
 
 							exp_buffer[exp_buffer_length - 1] = token;
+						} else {
+							printf("在第%d行发生错误，原因：使用了未定义的变量%s", token.line, token.value);
+							exit(EXIT_FAILURE);
 						}
 					}
 				}
-			} else if (match(parser, Token_Bool)) {
-				if (strcmp(token.value, "true") == 0) {
-					Token bool_token = { Token_Integer, "1", token.line };
-					exp_buffer[exp_buffer_length - 1] = bool_token;
-				} else if (strcmp(token.value, "false") == 0) {
-					Token bool_token = { Token_Integer, "0", token.line };
-					exp_buffer[exp_buffer_length - 1] = bool_token;
+
+				if (!find) {
+					printf("在第%d行发生错误，原因：使用了未声明的变量%s", token.line, token.value);
+					exit(EXIT_FAILURE);
 				}
-			} else {
-				if (token.type == Token_Add) {
-					if (exp_buffer_length == 1) {
-						token.type = Token_Positive;
-						exp_buffer[exp_buffer_length - 1] = token;
-						consume(parser);
-					} else {
-						Token previous_token = exp_buffer[exp_buffer_length - 2];
-						switch (previous_token.type) {
-							case Token_Integer:
-							case Token_Float:
-							case Token_String:
-								exp_buffer[exp_buffer_length - 1] = token;
-								consume(parser);
-								break;
-							default:
-								token.type = Token_Positive;
-								exp_buffer[exp_buffer_length - 1] = token;
-								consume(parser);
-						}
-					}
-				} else if (token.type == Token_Subtract) {
-					if (exp_buffer_length == 1) {
-						token.type = Token_Negative;
-						exp_buffer[exp_buffer_length - 1] = token;
-						consume(parser);
-					} else {
-						Token previous_token = exp_buffer[exp_buffer_length - 2];
-						switch (previous_token.type) {
-							case Token_Integer:
-							case Token_Float:
-							case Token_String:
-								exp_buffer[exp_buffer_length - 1] = token;
-								consume(parser);
-								break;
-							default:
-								token.type = Token_Negative;
-								exp_buffer[exp_buffer_length - 1] = token;
-								consume(parser);
-						}
-					}
-				} else if (match(parser, Token_LeftParen)) { // 处理括号
-					exp_buffer[exp_buffer_length - 1] = parse_expression(parser, Token_RightParen);
-					match(parser, Token_RightParen);
-				} else {
+			}
+		} else if (match(parser, Token_Bool)) {
+			if (strcmp(token.value, "true") == 0) {
+				Token bool_token = { Token_Integer, "1", token.line };
+				exp_buffer[exp_buffer_length - 1] = bool_token;
+			} else if (strcmp(token.value, "false") == 0) {
+				Token bool_token = { Token_Integer, "0", token.line };
+				exp_buffer[exp_buffer_length - 1] = bool_token;
+			}
+		} else {
+			if (token.type == Token_Add) {
+				if (exp_buffer_length == 1) {
+					token.type = Token_Positive;
 					exp_buffer[exp_buffer_length - 1] = token;
 					consume(parser);
+				} else {
+					Token previous_token = exp_buffer[exp_buffer_length - 2];
+					switch (previous_token.type) {
+						case Token_Integer:
+						case Token_Float:
+						case Token_String:
+							exp_buffer[exp_buffer_length - 1] = token;
+							consume(parser);
+							break;
+						default:
+							token.type = Token_Positive;
+							exp_buffer[exp_buffer_length - 1] = token;
+							consume(parser);
+					}
 				}
+			} else if (token.type == Token_Subtract) {
+				if (exp_buffer_length == 1) {
+					token.type = Token_Negative;
+					exp_buffer[exp_buffer_length - 1] = token;
+					consume(parser);
+				} else {
+					Token previous_token = exp_buffer[exp_buffer_length - 2];
+					switch (previous_token.type) {
+						case Token_Integer:
+						case Token_Float:
+						case Token_String:
+							exp_buffer[exp_buffer_length - 1] = token;
+							consume(parser);
+							break;
+						default:
+							token.type = Token_Negative;
+							exp_buffer[exp_buffer_length - 1] = token;
+							consume(parser);
+					}
+				}
+			} else if (match(parser, Token_LeftParen)) { // 处理括号
+				exp_buffer[exp_buffer_length - 1] = parse_expression(parser);
+				match(parser, Token_RightParen);
+			} else {
+				exp_buffer[exp_buffer_length - 1] = token;
+				consume(parser);
 			}
 		}
 	}

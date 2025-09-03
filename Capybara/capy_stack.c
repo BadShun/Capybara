@@ -13,36 +13,36 @@ bool is_empty(Stack *stack) {
 }
 
 void push(Stack *stack, Token value) {
-    Node *new_node = (Node *)malloc(sizeof(Node));
-    new_node->data = value;
-    new_node->next = stack->top;
-    stack->top = new_node;
+	Node *new_node = (Node *)malloc(sizeof(Node));
+	new_node->data = value;
+	new_node->next = stack->top;
+	stack->top = new_node;
 }
 
 Token pop(Stack *stack) {
-    if (is_empty(stack)) {
-        printf("栈为空\n");
-        exit(EXIT_FAILURE);
-    }
+	if (is_empty(stack)) {
+		printf("鏍堜负绌篭n");
+		exit(EXIT_FAILURE);
+	}
 
-    Node *temp = stack->top;
-    Token value = temp->data;
-    stack->top = temp->next;
-    free(temp);
-    return value;
+	Node *temp = stack->top;
+	Token value = temp->data;
+	stack->top = temp->next;
+	free(temp);
+	return value;
 }
 
 Token peek_top(Stack *stack) {
-    if (is_empty(stack)) {
-        printf("栈为空\n");
-        exit(EXIT_FAILURE);
-    }
+	if (is_empty(stack)) {
+		printf("鏍堜负绌篭n");
+		exit(EXIT_FAILURE);
+	}
 
-    return stack->top->data;
+	return stack->top->data;
 }
 
 void free_stack(Stack *stack) {
-    while (!is_empty(stack)) {
-        pop(stack);
-    }
+	while (!is_empty(stack)) {
+		pop(stack);
+	}
 }

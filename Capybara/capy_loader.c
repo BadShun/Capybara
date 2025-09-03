@@ -2,11 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char * read_file(char *file_name) {
+char *read_file(char *file_name) {
 	FILE *file = fopen(file_name, "r");
-	
+
 	if (!file) {
-		printf("δ�ҵ� %s", file_name);
+		printf("未找到 %s", file_name);
 		exit(EXIT_FAILURE);
 	}
 
