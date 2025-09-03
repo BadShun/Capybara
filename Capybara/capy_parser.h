@@ -41,6 +41,6 @@ void parse_init(char *file_path);
 void parse_program(char *file_name);
 Token *get_tokens(char *src);
 void parse_var_declare(Parser *parser);
-void parse_assign(Parser *parser, Module *module, char *var_name);
+void parse_assign(Parser *parser);
 Token parse_expression(Parser *parser, TokenType end_token_type);
 void parse_function_call(Parser *parser);

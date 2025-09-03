@@ -104,7 +104,7 @@ void parse_var_declare(Parser *parser) {
 		if (module->variables) {
 			for (int i = 0; i < module->variable_count; i++) {
 				if (strcmp(module->variables[i].variable_name, name_token.value) == 0) {
-					printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£º±äÁ¿ÃûÒÑ´æÔÚ\n", name_token.line);
+					printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šå˜é‡åå·²å­˜åœ¨\n", name_token.line);
 					exit(EXIT_FAILURE);
 				}
 			}
@@ -113,7 +113,7 @@ void parse_var_declare(Parser *parser) {
 		module->variables = (Variable *)realloc(module->variables, (++module->variable_count) * sizeof(Variable));
 		var.variable_name = _strdup(name_token.value);
 	} else {
-		printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£º±äÁ¿ÃûÈ±Ê§»ò·Ç·¨µÄ±êÊ¶·û%s\n", name_token.line, name_token.value);
+		printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šå˜é‡åç¼ºå¤±æˆ–éæ³•çš„æ ‡è¯†ç¬¦%s\n", name_token.line, name_token.value);
 		exit(EXIT_FAILURE);
 	}
 
@@ -124,7 +124,7 @@ void parse_var_declare(Parser *parser) {
 	if (match(parser, Token_Separator)) {
 		module->variables[module->variable_count - 1] = var;
 	} else {
-		printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£ºÈ±ÉÙ·ÖºÅ\n", name_token.line);
+		printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šç¼ºå°‘åˆ†å·\n", name_token.line);
 	}
 }
 
@@ -140,7 +140,7 @@ int get_priority(Token op_token) {
 			} else if (strcmp(op_token.value, "and") == 0) {
 				return 2;
 			} else {
-				printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£ºÎ´Öª²Ù×÷·û\n", op_token.line);
+				printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šæœªçŸ¥æ“ä½œç¬¦\n", op_token.line);
 				exit(EXIT_FAILURE);
 			}
 		case Token_Equal:
@@ -163,7 +163,7 @@ int get_priority(Token op_token) {
 		case Token_Negative:
 			return 8;
 		default:
-			printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£ºÎ´Öª²Ù×÷·û\n", op_token.line);
+			printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šæœªçŸ¥æ“ä½œç¬¦\n", op_token.line);
 			exit(EXIT_FAILURE);
 	}
 }
@@ -209,7 +209,7 @@ Token exp_subtract(Token left_value_token, Token right_value_token) {
 	Token result_token;
 
 	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
-		printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£º×Ö·û´®²»Ö§³Ö¼õ·¨ÔËËã\n", left_value_token.line);
+		printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šå­—ç¬¦ä¸²ä¸æ”¯æŒå‡æ³•è¿ç®—\n", left_value_token.line);
 		exit(EXIT_FAILURE);
 	} else if (left_value_token.type == Token_Float || right_value_token.type == Token_Float) {
 		double left_value = atof(left_value_token.value);
@@ -242,7 +242,7 @@ Token exp_multiply(Token left_value_token, Token right_value_token) {
 	Token result_token;
 
 	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
-		printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£º×Ö·û´®²»Ö§³Ö³Ë·¨ÔËËã\n", left_value_token.line);
+		printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šå­—ç¬¦ä¸²ä¸æ”¯æŒä¹˜æ³•è¿ç®—\n", left_value_token.line);
 		exit(EXIT_FAILURE);
 	} else if (left_value_token.type == Token_Float || right_value_token.type == Token_Float) {
 		double left_value = atof(left_value_token.value);
@@ -275,13 +275,13 @@ Token exp_divide(Token left_value_token, Token right_value_token) {
 	Token result_token;
 
 	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
-		printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£º×Ö·û´®²»Ö§³Ö³ı·¨ÔËËã\n", left_value_token.line);
+		printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šå­—ç¬¦ä¸²ä¸æ”¯æŒé™¤æ³•è¿ç®—\n", left_value_token.line);
 		exit(EXIT_FAILURE);
 	}
 
 	double eps = 1e-9;
 	if (atof(right_value_token.value) < eps) {
-		printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£º²»¿ÉÒÔ³ıÒÔ0\n", left_value_token.line);
+		printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šä¸å¯ä»¥é™¤ä»¥0\n", left_value_token.line);
 		exit(EXIT_FAILURE);
 	}
 
@@ -395,7 +395,7 @@ Token exp_greater_than(Token left_value_token, Token right_value_token) {
 	result_token.type = Token_Bool;
 
 	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
-		printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£º×Ö·û´®²»Ö§³Ö´óÓÚÔËËã\n", left_value_token.line);
+		printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šå­—ç¬¦ä¸²ä¸æ”¯æŒå¤§äºè¿ç®—\n", left_value_token.line);
 		exit(EXIT_FAILURE);
 	} else {
 		double left_value = atof(left_value_token.value);
@@ -412,7 +412,7 @@ Token exp_less_than(Token left_value_token, Token right_value_token) {
 	result_token.type = Token_Bool;
 
 	if (left_value_token.type == Token_String || right_value_token.type == Token_String) {
-		printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£º×Ö·û´®²»Ö§³ÖĞ¡ÓÚÔËËã\n", left_value_token.line);
+		printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šå­—ç¬¦ä¸²ä¸æ”¯æŒå°äºè¿ç®—\n", left_value_token.line);
 		exit(EXIT_FAILURE);
 	} else {
 		double left_value = atof(left_value_token.value);
@@ -480,7 +480,7 @@ Token exp_positive(Token value_token) {
 	Token result_token;
 
 	if (value_token.type == Token_String) {
-		printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£º×Ö·û´®²»Ö§³ÖÈ¡Õı\n", value_token.line);
+		printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šå­—ç¬¦ä¸²ä¸æ”¯æŒå–æ­£\n", value_token.line);
 		exit(EXIT_FAILURE);
 	} else {
 		char *result = (char *)malloc(strlen(value_token.value) + 1);
@@ -499,7 +499,7 @@ Token exp_negative(Token value_token) {
 	Token result_token;
 
 	if (value_token.type == Token_String) {
-		printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£º×Ö·û´®²»Ö§³ÖÈ¡¸º\n", value_token.line);
+		printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šå­—ç¬¦ä¸²ä¸æ”¯æŒå–è´Ÿ\n", value_token.line);
 		exit(EXIT_FAILURE);
 	} else {
 		char *result = (char *)malloc(strlen(value_token.value) + 1);
@@ -526,10 +526,10 @@ Token parse_expression(Parser *parser, TokenType end_token_type) {
 		if (token.type == Token_EOF) {
 			switch (end_token_type) {
 				case Token_Separator:
-					printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£ºÈ±ÉÙ±í´ïÊ½½áÊø·û%s\n", token.line, ";");
+					printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šç¼ºå°‘è¡¨è¾¾å¼ç»“æŸç¬¦%s\n", token.line, ";");
 					exit(EXIT_FAILURE);
 				default:
-					printf("ÔÚµÚ%dĞĞ·¢Éú´íÎó£¬Ô­Òò£ºÈ±ÉÙ±í´ïÊ½½áÊø·û\n", token.line);
+					printf("åœ¨ç¬¬%dè¡Œå‘ç”Ÿé”™è¯¯ï¼ŒåŸå› ï¼šç¼ºå°‘è¡¨è¾¾å¼ç»“æŸç¬¦\n", token.line);
 					exit(EXIT_FAILURE);
 			}
 		}
@@ -618,7 +618,7 @@ Token parse_expression(Parser *parser, TokenType end_token_type) {
 								consume(parser);
 						}
 					}
-				} else if (match(parser, Token_LeftParen)) { // ´¦ÀíÀ¨ºÅ
+				} else if (match(parser, Token_LeftParen)) { // å¤„ç†æ‹¬å·
 					exp_buffer[exp_buffer_length - 1] = parse_expression(parser, Token_RightParen);
 					match(parser, Token_RightParen);
 				} else {
@@ -683,6 +683,7 @@ Token parse_expression(Parser *parser, TokenType end_token_type) {
 		switch (exp_token.type) {
 			case Token_Integer:
 			case Token_Float:
+			case Token_Bool:
 			case Token_String:
 				push(value_stack, exp_token);
 				continue;
