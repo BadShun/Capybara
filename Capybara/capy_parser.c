@@ -16,8 +16,6 @@ Parser *parser;
 Module *module;
 char *name;
 
-void var_set_value();
-
 Token peek(Parser *parser) {
 	return parser->tokens[parser->current_index];
 }
@@ -93,6 +91,8 @@ void parse_statement(Parser *parser) {
 		if (token.type == Token_Keyword) {
 			if (strcmp(token.value, "var") == 0) {
 				parse_var_declare(parser);
+			} else if(strcmp(token.value, "fn") == 0) {
+				parse_func_declare(parser);
 			}
 		} else if (token.type == Token_Identifier) {
 			Token name_token = consume(parser);
@@ -101,8 +101,7 @@ void parse_statement(Parser *parser) {
 			if (token.type == Token_Assign) {
 				parse_assign(parser, name_token);
 			} else if (token.type == Token_LeftParen) {
-				// 解析函数
-				printf("function call\n");
+				parse_function_call(parser, name_token);
 			} else {
 				printf("在第%d行发生错误，原因：缺少可修改的左值\n", name_token.line);
 				exit(EXIT_FAILURE);
@@ -160,7 +159,7 @@ void parse_var_declare(Parser *parser) {
 	if (match(parser, Token_Separator)) {
 		module->variables[module->variable_count++] = var;
 	} else {
-		printf("在第%d行发生错误，原因：缺少分号\n", name_token.line);
+		printf("在第%d行发生错误，原因：缺少结束符;\n", name_token.line);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -181,7 +180,178 @@ void parse_assign(Parser *parser, Token name_token) {
 	}
 
 	if (!find) {
-		printf("在第%d行发生错误，原因：变量%s未声明\n", name_token.line, name_token.type);
+		printf("在第%d行发生错误，原因：变量%s未声明\n", name_token.line, name_token.value);
+		exit(EXIT_FAILURE);
+	}
+}
+
+void parse_func_declare(Parser *parser) {
+	match(parser, Token_Keyword);
+
+	Token name_token = peek(parser);
+	Token *arg_tokens = NULL;
+	int arg_token_length = 0;
+	Token *body_tokens = NULL;
+	int body_token_length = 0;
+
+	if (match(parser, Token_Identifier)) {
+		if (match(parser, Token_LeftParen)) {
+			Token arg_token = peek(parser);
+
+			while (true) {
+				if (arg_token.type == Token_EOF) {
+					printf("在第%d行发生错误，原因：缺少结束符)\n", arg_token.line);
+					exit(EXIT_FAILURE);
+				}
+				
+				if (arg_token.type == Token_Identifier) {
+					arg_tokens = (Token *)realloc(arg_tokens, (arg_token_length + 1) * sizeof(Token));
+					arg_tokens[arg_token_length++] = arg_token;
+					consume(parser);
+					arg_token = peek(parser);
+				} else if (arg_token.type == Token_RightParen) {
+					break;
+				} else {
+					printf("在第%d行发生错误，原因：非法的标识符\n", arg_token.line);
+					exit(EXIT_FAILURE);
+				}
+				
+				if (arg_token.type == Token_Comma) {
+					consume(parser);
+					arg_token = peek(parser);
+				} else if (arg_token.type == Token_RightParen) {
+					break;
+				} else {
+					printf("在第%d行发生错误，原因：缺少结束符,或)\n", arg_token.line);
+					exit(EXIT_FAILURE);
+				}
+			}
+
+			match(parser, Token_RightParen);
+
+			if (match(parser, Token_LeftBrace)) {
+				int brace_count = 1;
+
+				while (brace_count) {
+					Token body_token = peek(parser);
+
+					if (body_token.type == Token_EOF) {
+						printf("在第%d行发生错误，原因：缺少符号}\n", arg_token.line);
+						exit(EXIT_FAILURE);
+					}
+
+					if (body_token.type == Token_LeftBrace) {
+						brace_count++;
+					} else if (body_token.type == Token_RightBrace) {
+						brace_count--;
+					}
+
+					if (brace_count) {
+						body_tokens = (Token *)realloc(body_tokens, (body_token_length + 1) * sizeof(Token));
+						body_tokens[body_token_length++] = body_token;
+						consume(parser);
+					} else {
+						match(parser, Token_RightBrace);
+					}
+				}
+
+
+				Token func_end_token = { Token_EOF, NULL, body_tokens[body_token_length - 1].line };
+				body_tokens = (Token *)realloc(body_tokens, (body_token_length + 1) * sizeof(Token));
+				body_tokens[body_token_length++] = func_end_token;
+			} else {
+				printf("在第%d行发生错误，原因：缺少符号{\n", arg_token.line, arg_token.value);
+				exit(EXIT_FAILURE);
+			}
+		}
+
+		int index = 0;
+
+		Variable func_var;
+		func_var.variable_type = Variable_FUNC;
+		func_var.variable_name = name_token.value;
+
+		Function *function = malloc(sizeof(Function));
+		function->arg_tokens = arg_tokens;
+		function->arg_token_length = arg_token_length;
+		function->body_tokens = body_tokens;
+		function->body_token_length = body_token_length;
+
+		func_var.value.function = function;
+
+		for (int i = 0; module->variable_count; i++) {
+			if (strcmp(name_token.value, module->variables[i].variable_name) == 0) {
+				func_var.variable_name = module->variables[i].variable_name;
+				index = i;
+			}
+		}
+
+		if (index) {
+			module->variables[index] = func_var;
+		} else {
+			module->variables = (Variable *)realloc(module->variables, (module->variable_count + 1) * sizeof(Variable));
+			module->variables[module->variable_count++] = func_var;
+		}
+	} else {
+		printf("在第%d行发生错误，原因：非法的标识符%s\n", name_token.line, name_token.value);
+		exit(EXIT_FAILURE);
+	}
+}
+
+void parse_function_call(Parser *parser, Token name_token) {
+	match(parser, Token_LeftParen);
+
+	Function *func = NULL;
+
+	for (int i = 0; i < module->variable_count; i++) {
+		if (strcmp(name_token.value, module->variables[i].variable_name) == 0 && module->variables[i].variable_type == Variable_FUNC) {
+			func = module->variables[i].value.function;
+		}
+	}
+
+	if (func) {
+		Parser *func_parser = (Parser *)malloc(sizeof(Parser));
+		func_parser->tokens = func->body_tokens;
+		func_parser->token_length = func->body_token_length;
+		func_parser->current_index = 0;
+
+		Token *arg_tokens = NULL;
+		int arg_token_length = 0;
+
+		while (true) {
+			Token arg_token = parse_expression(parser);
+			arg_tokens = (Token *)realloc(arg_tokens, (arg_token_length + 1) * sizeof(Token));
+			arg_tokens[arg_token_length++] = arg_token;
+
+			if (match(parser, Token_Comma)) {
+
+			} else if (match(parser, Token_RightParen)) {
+				break;
+			}
+		}
+
+		Module *func_module = (Module *)malloc(sizeof(Module));
+
+		if (arg_token_length == func->arg_token_length) {
+			for (int i = 0; i < arg_token_length; i++) {
+				Variable var;
+				var.value.variable_value = arg_tokens[i].value;
+				var.variable_name = func->arg_tokens[i].value;
+				var.variable_type = mapping_token_type(arg_tokens[i].type);
+
+				func_module->variables = (Variable *)realloc(func_module, (func_module->variable_count + 1) * sizeof(Variable));
+				func_module->variables[func_module->variable_count++] = var;
+			}
+		} else {
+			printf("在第%d行发生错误，原因：函数参数数量不匹配\n", name_token.line);
+			exit(EXIT_FAILURE);
+		}
+
+		
+
+		match(parser, Token_Separator);
+	} else {
+		printf("在第%d行发生错误，原因：函数%s未定义\n", name_token.line, name_token.value);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -746,7 +916,6 @@ Token parse_expression(Parser *parser) {
 	stack_init(value_stack);
 
 	for (int i = 0; i < postfix_exp_buffer_length; i++) {
-		print_token(postfix_exp_buffer[i]);
 		Token exp_token = postfix_exp_buffer[i];
 		Token left_value_token;
 		Token right_value_token;
@@ -849,13 +1018,8 @@ Token parse_expression(Parser *parser) {
 	}
 
 	exp_result_token = pop(value_stack);
-	print_token(exp_result_token);
 
 	return exp_result_token;
-}
-
-void parse_function_call(Parser *parser) {
-
 }
 
 Token * get_tokens(char *src) {

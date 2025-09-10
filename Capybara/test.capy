@@ -1,3 +1,12 @@
-var test = 3;
-test();
+fn sum(a, b) {
+	var num1 = a;
+	var num2 = b;
 
+	if (num1 == num2) {
+		return num1 * 2;
+	} else {
+		return num1 + num2;
+	}
+}
+
+sum(10 * (-20 +10), (-20 + 100) * 3);

@@ -7,5 +7,6 @@
 
 int main() {
 	parse_program("test.capy");
+
 	return 0;
 }

@@ -15,15 +15,18 @@ typedef enum {
 	Variable_STRING,
 	Variable_BOOL,
 	Variable_MODULE,
+	Variable_FUNC
 } VariableType;
 
 typedef struct Module Module;
+typedef struct Function Function;
 
 typedef struct {
 	char *variable_name;
 	union {
 		char *variable_value;
 		Module *module;
+		Function *function;
 	} value;
 	VariableType variable_type;
 } Variable;
@@ -34,6 +37,13 @@ struct Module {
 	int variable_count;
 };
 
+struct Function {
+	Token *arg_tokens;
+	int arg_token_length;
+	Token *body_tokens;
+	int body_token_length;
+};
+
 Token peek(Parser *parser);
 Token consume(Parser *parser);
 bool match(Parser *parser, TokenType token_type);
@@ -42,6 +52,7 @@ void parse_program(char *file_name);
 Token *get_tokens(char *src);
 void parse_var_declare(Parser *parser);
 void parse_assign(Parser *parser, Token name_token);
+void parse_func_declare(Parser *parser);
+void parse_function_call(Parser *parser, Token name_token);
 void parse_statement(Parser *parser);
 Token parse_expression(Parser *parser);
-void parse_function_call(Parser *parser);
