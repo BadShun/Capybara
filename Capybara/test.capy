@@ -1,12 +1,18 @@
+var test = 10;
+var c = 60;
+
 fn sum(a, b) {
 	var num1 = a;
 	var num2 = b;
+	var num3 = num1 + num2;
 
-	if (num1 == num2) {
-		return num1 * 2;
-	} else {
-		return num1 + num2;
+	fn add(num) {
+		var test = c;
 	}
+
+	add(num3);
+
+	var bbb = test - 10;
 }
 
-sum(10 * (-20 +10), (-20 + 100) * 3);
+sum(10, 20);

@@ -35,6 +35,8 @@ struct Module {
 	char *module_name;
 	Variable *variables;
 	int variable_count;
+	Module *previous_module;
+	Module *next_module;
 };
 
 struct Function {
@@ -49,6 +51,9 @@ Token consume(Parser *parser);
 bool match(Parser *parser, TokenType token_type);
 void parse_init(char *file_path);
 void parse_program(char *file_name);
+Module *get_current_module();
+bool match_var(char *var_name);
+Module *get_matched_moudle(char *var_name);
 Token *get_tokens(char *src);
 void parse_var_declare(Parser *parser);
 void parse_assign(Parser *parser, Token name_token);

@@ -62,6 +62,8 @@ void parse_init(char *file_name) {
 	module->module_name = name;
 	module->variables = NULL;
 	module->variable_count = 0;
+	module->previous_module = NULL;
+	module->next_module = NULL;
 
 	/*while (true) {
 		Token token = consume(parser);
@@ -113,6 +115,52 @@ void parse_statement(Parser *parser) {
 	}
 }
 
+Module * get_current_module() {
+	Module *deepest_module = module;
+
+	while (deepest_module->next_module) {
+		deepest_module = deepest_module->next_module;
+	}
+
+	return deepest_module;
+}
+
+bool match_var(char *var_name) {
+	Module *current_module = get_current_module();
+
+	while (true) {
+		for (int i = 0; i < current_module->variable_count; i++) {
+			if (strcmp(var_name, current_module->variables[i].variable_name) == 0) {
+				return true;
+			}
+		}
+
+		if (current_module->previous_module) {
+			current_module = current_module->previous_module;
+		} else {
+			return false;
+		}
+	}
+}
+
+Module * get_matched_moudle(char *var_name) {
+	Module *current_module = get_current_module();
+
+	while (true) {
+		for (int i = 0; i < current_module->variable_count; i++) {
+			if (strcmp(var_name, current_module->variables[i].variable_name) == 0) {
+				return current_module;
+			}
+		}
+
+		if (current_module->previous_module) {
+			current_module = current_module->previous_module;
+		} else {
+			return NULL;
+		}
+	}
+}
+
 VariableType mapping_token_type(TokenType token_type) {
 	switch (token_type) {
 		case Token_Integer:
@@ -128,7 +176,8 @@ VariableType mapping_token_type(TokenType token_type) {
 
 void parse_var_declare(Parser *parser) {
 	match(parser, Token_Keyword);
-	
+
+	Module *module = get_current_module();
 	Variable var;
 	Token name_token = peek(parser);
 	
@@ -167,21 +216,22 @@ void parse_var_declare(Parser *parser) {
 void parse_assign(Parser *parser, Token name_token) {
 	match(parser, Token_Assign);
 
-	bool find = false;
-
+	Module *module = get_current_module();
 	Variable var;
+
+	if (!match_var(name_token.value)) {
+		printf("在第%d行发生错误，原因：变量%s未声明\n", name_token.line, name_token.value);
+		exit(EXIT_FAILURE);
+	}
+
+	module = get_matched_moudle(name_token.value);
+
 	for (int i = 0; i < module->variable_count; i++) {
 		if (strcmp(module->variables[i].variable_name, name_token.value) == 0) {
-			find = true;
 			Token exp_result = parse_expression(parser);
 			module->variables[i].value.variable_value = exp_result.value;
 			module->variables[i].variable_type = mapping_token_type(exp_result.type);
 		}
-	}
-
-	if (!find) {
-		printf("在第%d行发生错误，原因：变量%s未声明\n", name_token.line, name_token.value);
-		exit(EXIT_FAILURE);
 	}
 }
 
@@ -193,6 +243,8 @@ void parse_func_declare(Parser *parser) {
 	int arg_token_length = 0;
 	Token *body_tokens = NULL;
 	int body_token_length = 0;
+
+	Module *module = get_current_module();
 
 	if (match(parser, Token_Identifier)) {
 		if (match(parser, Token_LeftParen)) {
@@ -279,7 +331,7 @@ void parse_func_declare(Parser *parser) {
 
 		func_var.value.function = function;
 
-		for (int i = 0; module->variable_count; i++) {
+		for (int i = 0; i < module->variable_count; i++) {
 			if (strcmp(name_token.value, module->variables[i].variable_name) == 0) {
 				func_var.variable_name = module->variables[i].variable_name;
 				index = i;
@@ -301,6 +353,7 @@ void parse_func_declare(Parser *parser) {
 void parse_function_call(Parser *parser, Token name_token) {
 	match(parser, Token_LeftParen);
 
+	Module *module = get_current_module();
 	Function *func = NULL;
 
 	for (int i = 0; i < module->variable_count; i++) {
@@ -318,19 +371,27 @@ void parse_function_call(Parser *parser, Token name_token) {
 		Token *arg_tokens = NULL;
 		int arg_token_length = 0;
 
-		while (true) {
-			Token arg_token = parse_expression(parser);
-			arg_tokens = (Token *)realloc(arg_tokens, (arg_token_length + 1) * sizeof(Token));
-			arg_tokens[arg_token_length++] = arg_token;
+		if (match(parser, Token_RightParen)) {
+		
+		} else {
+			while (true) {
+				Token arg_token = parse_expression(parser);
+				arg_tokens = (Token *)realloc(arg_tokens, (arg_token_length + 1) * sizeof(Token));
+				arg_tokens[arg_token_length++] = arg_token;
 
-			if (match(parser, Token_Comma)) {
+				if (match(parser, Token_Comma)) {
 
-			} else if (match(parser, Token_RightParen)) {
-				break;
+				} else if (match(parser, Token_RightParen)) {
+					break;
+				}
 			}
 		}
 
 		Module *func_module = (Module *)malloc(sizeof(Module));
+		func_module->variable_count = 0;
+		func_module->variables = NULL;
+		func_module->previous_module = get_current_module();
+		func_module->next_module = NULL;
 
 		if (arg_token_length == func->arg_token_length) {
 			for (int i = 0; i < arg_token_length; i++) {
@@ -339,7 +400,7 @@ void parse_function_call(Parser *parser, Token name_token) {
 				var.variable_name = func->arg_tokens[i].value;
 				var.variable_type = mapping_token_type(arg_tokens[i].type);
 
-				func_module->variables = (Variable *)realloc(func_module, (func_module->variable_count + 1) * sizeof(Variable));
+				func_module->variables = (Variable *)realloc(func_module->variables, (func_module->variable_count + 1) * sizeof(Variable));
 				func_module->variables[func_module->variable_count++] = var;
 			}
 		} else {
@@ -347,8 +408,9 @@ void parse_function_call(Parser *parser, Token name_token) {
 			exit(EXIT_FAILURE);
 		}
 
-		
-
+		get_current_module()->next_module = func_module;
+		parse_statement(func_parser);
+		get_current_module()->previous_module->next_module = NULL;
 		match(parser, Token_Separator);
 	} else {
 		printf("在第%d行发生错误，原因：函数%s未定义\n", name_token.line, name_token.value);
@@ -746,6 +808,8 @@ Token parse_expression(Parser *parser) {
 	memset(&exp_result_token, 0, sizeof(Token));
 	int exp_buffer_length = 0;
 
+	Module *module = get_current_module();
+
 	while (true) {
 		Token token = peek(parser);
 
@@ -774,10 +838,15 @@ Token parse_expression(Parser *parser) {
 			} else if (match(parser, Token_Dot)) {
 
 			} else {
-				bool find = false;
+				if (!match_var(token.value)) {
+					printf("在第%d行发生错误，原因：使用了未声明的变量%s", token.line, token.value);
+					exit(EXIT_FAILURE);
+				}
+
+				module = get_matched_moudle(token.value);
+
 				for (int i = 0; i < module->variable_count; i++) {
 					if (strcmp(module->variables[i].variable_name, token.value) == 0) {
-						find = true;
 						Variable var = module->variables[i];
 
 						if (var.value.variable_value) {
@@ -804,11 +873,6 @@ Token parse_expression(Parser *parser) {
 							exit(EXIT_FAILURE);
 						}
 					}
-				}
-
-				if (!find) {
-					printf("在第%d行发生错误，原因：使用了未声明的变量%s", token.line, token.value);
-					exit(EXIT_FAILURE);
 				}
 			}
 		} else if (match(parser, Token_Bool)) {
@@ -1018,6 +1082,7 @@ Token parse_expression(Parser *parser) {
 	}
 
 	exp_result_token = pop(value_stack);
+	print_token(exp_result_token);
 
 	return exp_result_token;
 }
