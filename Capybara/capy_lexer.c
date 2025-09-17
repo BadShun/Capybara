@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-const char *keywords[] = { "var", "true", "false", "and", "or", "if", "elif", "esle", "while", "fn", "return" };
+const char *keywords[] = { "var", "true", "false", "and", "or", "if", "elif", "else", "while", "fn", "return" };
 const int keywords_count = sizeof(keywords) / sizeof(char *);
 
 char *src;

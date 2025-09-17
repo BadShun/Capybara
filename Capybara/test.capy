@@ -1,18 +1,4 @@
-var test = 10;
-var c = 60;
-
-fn sum(a, b) {
-	var num1 = a;
-	var num2 = b;
-	var num3 = num1 + num2;
-
-	fn add(num) {
-		var test = c;
-	}
-
-	add(num3);
-
-	var bbb = test - 10;
+var a = 0;
+while (a < 100) {
+	a = a+ 1;
 }
-
-sum(10, 20);

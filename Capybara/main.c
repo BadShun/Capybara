@@ -6,14 +6,7 @@
 #include "capy_stack.h"
 
 int main() {
-	//parse_program("test.capy");
-	while (true) {
-		for (int i = 0; i < 25000; i++) {
-			for (int j = 0; j < 25000; j++) {
+	parse_program("test.capy");
 
-			}
-		}
-		printf("hello world\n");
-	}
 	return 0;
 }

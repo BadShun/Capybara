@@ -79,10 +79,12 @@ void parse_init(char *file_name) {
 void parse_program(char *file_name) {
 	parse_init(file_name);
 
-	parse_statement(parser);
+	parse_statement(parser, Statement_GLOBAL);
 }
 
-void parse_statement(Parser *parser) {
+Token parse_statement(Parser *parser, int statement_type) {
+	Token return_token = { Token_Unknown, NULL, 0};
+
 	while (true) {
 		Token token = peek(parser);
 
@@ -93,8 +95,22 @@ void parse_statement(Parser *parser) {
 		if (token.type == Token_Keyword) {
 			if (strcmp(token.value, "var") == 0) {
 				parse_var_declare(parser);
-			} else if(strcmp(token.value, "fn") == 0) {
+			} else if (strcmp(token.value, "if") == 0) {
+				parse_if(parser);
+			} else if (strcmp(token.value, "while") == 0) {
+				parse_while(parser);
+			} else if (strcmp(token.value, "fn") == 0) {
 				parse_func_declare(parser);
+			} else if (strcmp(token.value, "return") == 0) {
+				if (!(statement_type & Statement_FUNC)) {
+					printf("在第%d行发生错误，原因：在函数外执行return\n", token.line);
+					exit(EXIT_FAILURE);
+				}
+				match(parser, Token_Keyword);
+				return_token = parse_expression(parser);
+				printf("return value:");
+				print_token(return_token);
+				return return_token;
 			}
 		} else if (token.type == Token_Identifier) {
 			Token name_token = consume(parser);
@@ -109,10 +125,14 @@ void parse_statement(Parser *parser) {
 				exit(EXIT_FAILURE);
 			}
 
+		} else if (token.type == Token_Separator) {
+			consume(parser);
 		} else {
 			consume(parser);
 		}
 	}
+
+	return return_token;
 }
 
 Module * get_current_module() {
@@ -143,7 +163,7 @@ bool match_var(char *var_name) {
 	}
 }
 
-Module * get_matched_moudle(char *var_name) {
+Module *get_matched_module(char *var_name) {
 	Module *current_module = get_current_module();
 
 	while (true) {
@@ -224,7 +244,7 @@ void parse_assign(Parser *parser, Token name_token) {
 		exit(EXIT_FAILURE);
 	}
 
-	module = get_matched_moudle(name_token.value);
+	module = get_matched_module(name_token.value);
 
 	for (int i = 0; i < module->variable_count; i++) {
 		if (strcmp(module->variables[i].variable_name, name_token.value) == 0) {
@@ -288,7 +308,7 @@ void parse_func_declare(Parser *parser) {
 					Token body_token = peek(parser);
 
 					if (body_token.type == Token_EOF) {
-						printf("在第%d行发生错误，原因：缺少符号}\n", arg_token.line);
+						printf("在第%d行发生错误，原因：缺少符号}\n", body_token.line);
 						exit(EXIT_FAILURE);
 					}
 
@@ -312,7 +332,7 @@ void parse_func_declare(Parser *parser) {
 				body_tokens = (Token *)realloc(body_tokens, (body_token_length + 1) * sizeof(Token));
 				body_tokens[body_token_length++] = func_end_token;
 			} else {
-				printf("在第%d行发生错误，原因：缺少符号{\n", arg_token.line, arg_token.value);
+				printf("在第%d行发生错误，原因：缺少符号{\n", arg_token.line);
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -350,10 +370,15 @@ void parse_func_declare(Parser *parser) {
 	}
 }
 
-void parse_function_call(Parser *parser, Token name_token) {
+Token parse_function_call(Parser *parser, Token name_token) {
 	match(parser, Token_LeftParen);
 
-	Module *module = get_current_module();
+	if (!match_var(name_token.value)) {
+		printf("在第%d行发生错误，原因：函数%s未定义\n", name_token.line, name_token.value);
+		exit(EXIT_FAILURE);
+	}
+
+	Module *module = get_matched_module(name_token.value);
 	Function *func = NULL;
 
 	for (int i = 0; i < module->variable_count; i++) {
@@ -362,60 +387,57 @@ void parse_function_call(Parser *parser, Token name_token) {
 		}
 	}
 
-	if (func) {
-		Parser *func_parser = (Parser *)malloc(sizeof(Parser));
-		func_parser->tokens = func->body_tokens;
-		func_parser->token_length = func->body_token_length;
-		func_parser->current_index = 0;
+	Parser *func_parser = (Parser *)malloc(sizeof(Parser));
+	func_parser->tokens = func->body_tokens;
+	func_parser->token_length = func->body_token_length;
+	func_parser->current_index = 0;
 
-		Token *arg_tokens = NULL;
-		int arg_token_length = 0;
+	Token *arg_tokens = NULL;
+	int arg_token_length = 0;
 
-		if (match(parser, Token_RightParen)) {
-		
-		} else {
-			while (true) {
-				Token arg_token = parse_expression(parser);
-				arg_tokens = (Token *)realloc(arg_tokens, (arg_token_length + 1) * sizeof(Token));
-				arg_tokens[arg_token_length++] = arg_token;
+	if (match(parser, Token_RightParen)) {
 
-				if (match(parser, Token_Comma)) {
-
-				} else if (match(parser, Token_RightParen)) {
-					break;
-				}
-			}
-		}
-
-		Module *func_module = (Module *)malloc(sizeof(Module));
-		func_module->variable_count = 0;
-		func_module->variables = NULL;
-		func_module->previous_module = get_current_module();
-		func_module->next_module = NULL;
-
-		if (arg_token_length == func->arg_token_length) {
-			for (int i = 0; i < arg_token_length; i++) {
-				Variable var;
-				var.value.variable_value = arg_tokens[i].value;
-				var.variable_name = func->arg_tokens[i].value;
-				var.variable_type = mapping_token_type(arg_tokens[i].type);
-
-				func_module->variables = (Variable *)realloc(func_module->variables, (func_module->variable_count + 1) * sizeof(Variable));
-				func_module->variables[func_module->variable_count++] = var;
-			}
-		} else {
-			printf("在第%d行发生错误，原因：函数参数数量不匹配\n", name_token.line);
-			exit(EXIT_FAILURE);
-		}
-
-		get_current_module()->next_module = func_module;
-		parse_statement(func_parser);
-		get_current_module()->previous_module->next_module = NULL;
-		match(parser, Token_Separator);
 	} else {
-		printf("在第%d行发生错误，原因：函数%s未定义\n", name_token.line, name_token.value);
+		while (true) {
+			Token arg_token = parse_expression(parser);
+			arg_tokens = (Token *)realloc(arg_tokens, (arg_token_length + 1) * sizeof(Token));
+			arg_tokens[arg_token_length++] = arg_token;
+
+			if (match(parser, Token_Comma)) {
+
+			} else if (match(parser, Token_RightParen)) {
+				break;
+			}
+		}
+	}
+
+	Module *func_module = (Module *)malloc(sizeof(Module));
+	func_module->variable_count = 0;
+	func_module->variables = NULL;
+	func_module->previous_module = get_current_module();
+	func_module->next_module = NULL;
+
+	if (arg_token_length == func->arg_token_length) {
+		for (int i = 0; i < arg_token_length; i++) {
+			Variable var;
+			var.value.variable_value = arg_tokens[i].value;
+			var.variable_name = func->arg_tokens[i].value;
+			var.variable_type = mapping_token_type(arg_tokens[i].type);
+
+			func_module->variables = (Variable *)realloc(func_module->variables, (func_module->variable_count + 1) * sizeof(Variable));
+			func_module->variables[func_module->variable_count++] = var;
+		}
+	} else {
+		printf("在第%d行发生错误，原因：函数参数数量不匹配\n", name_token.line);
 		exit(EXIT_FAILURE);
 	}
+
+	get_current_module()->next_module = func_module;
+	Token return_token = parse_statement(func_parser, Statement_FUNC);
+	get_current_module()->previous_module->next_module = NULL;
+	//match(parser, Token_Separator);
+
+	return return_token;
 }
 
 int get_priority(Token op_token) {
@@ -834,7 +856,7 @@ Token parse_expression(Parser *parser) {
 
 		if (match(parser, Token_Identifier)) {
 			if (match(parser, Token_LeftParen)) {
-				// 调用函数
+				exp_buffer[exp_buffer_length - 1] = parse_function_call(parser, token);
 			} else if (match(parser, Token_Dot)) {
 
 			} else {
@@ -843,7 +865,7 @@ Token parse_expression(Parser *parser) {
 					exit(EXIT_FAILURE);
 				}
 
-				module = get_matched_moudle(token.value);
+				module = get_matched_module(token.value);
 
 				for (int i = 0; i < module->variable_count; i++) {
 					if (strcmp(module->variables[i].variable_name, token.value) == 0) {
@@ -1085,6 +1107,201 @@ Token parse_expression(Parser *parser) {
 	print_token(exp_result_token);
 
 	return exp_result_token;
+}
+
+void parse_if(Parser *parser) {
+	match(parser, Token_Keyword);
+
+	if (match(parser, Token_LeftParen)) {
+		Token token = peek(parser);
+
+		if (match(parser, Token_RightParen)) {
+			printf("在第%d行发生错误，原因：if语句需要触发条件\n", token.line);
+			exit(EXIT_FAILURE);
+		} else {
+			Token condition_token = parse_expression(parser);
+			Token true_token = { Token_Bool, "true", token.line };
+			condition_token = exp_and(condition_token, true_token);
+			
+			match(parser, Token_RightParen);
+
+			Token *body_tokens = NULL;
+			int body_token_length = 0;
+
+			if (match(parser, Token_LeftBrace)) {
+				int brace_count = 1;
+
+				while (brace_count) {
+					Token body_token = peek(parser);
+
+					if (body_token.type == Token_EOF) {
+						printf("在第%d行发生错误，原因：缺少符号}\n", body_token.line);
+						exit(EXIT_FAILURE);
+					}
+
+					if (body_token.type == Token_LeftBrace) {
+						brace_count++;
+					}
+					else if (body_token.type == Token_RightBrace) {
+						brace_count--;
+					}
+
+					if (brace_count) {
+						body_tokens = (Token *)realloc(body_tokens, (body_token_length + 1) * sizeof(Token));
+						body_tokens[body_token_length++] = body_token;
+						consume(parser);
+					}
+					else {
+						match(parser, Token_RightBrace);
+					}
+				}
+
+				Token if_end_token = { Token_EOF, NULL, body_tokens[body_token_length - 1].line };
+				body_tokens = (Token *)realloc(body_tokens, (body_token_length + 1) * sizeof(Token));
+				body_tokens[body_token_length++] = if_end_token;
+			} else {
+				printf("在第%d行发生错误，原因：缺少符号{\n", token.line);
+				exit(EXIT_FAILURE);
+			}
+
+			if (strcmp(condition_token.value, "true") == 0) {
+				Parser *if_parser = (Parser *)malloc(sizeof(Parser));
+				if_parser->tokens = body_tokens;
+				if_parser->token_length = body_token_length;
+				if_parser->current_index = 0;
+
+				Module *if_module = (Module *)malloc(sizeof(Module));
+				if_module->variable_count = 0;
+				if_module->variables = NULL;
+				if_module->previous_module = get_current_module();
+				if_module->next_module = NULL;
+
+				get_current_module()->next_module = if_module;
+				Token return_token = parse_statement(if_parser, Statement_IF);
+				get_current_module()->previous_module->next_module = NULL;
+			} else {
+				free(body_tokens);
+				body_tokens = NULL;
+				body_token_length = 0;
+			}
+		}
+	}
+}
+
+void parse_while(Parser *parser) {
+	match(parser, Token_Keyword);
+
+	if (match(parser, Token_LeftParen)) {
+		Token token = peek(parser);
+
+		if (match(parser, Token_RightParen)) {
+			printf("在第%d行发生错误，原因：while语句需要触发条件\n", token.line);
+			exit(EXIT_FAILURE);
+		} else {
+			Token *condition_tokens = NULL;
+			int condition_token_length = 0;
+
+			int paren_count = 1;
+
+			while (paren_count) {
+				Token conditon_token = peek(parser);
+
+				if (conditon_token.type == Token_EOF) {
+					printf("在第%d行发生错误，原因：缺少符号)\n", conditon_token.line);
+					exit(EXIT_FAILURE);
+				}
+
+				if (conditon_token.type == Token_LeftParen) {
+					paren_count++;
+				}
+				else if (conditon_token.type == Token_RightParen) {
+					paren_count--;
+				}
+
+				if (paren_count) {
+					condition_tokens = (Token *)realloc(condition_tokens, (condition_token_length + 1) * sizeof(Token));
+					condition_tokens[condition_token_length++] = conditon_token;
+					consume(parser);
+				} else {
+					match(parser, Token_RightParen);
+				}
+			}
+
+			Token condition_end_token = { Token_Separator, NULL, condition_tokens[condition_token_length - 1].line };
+			condition_tokens = (Token *)realloc(condition_tokens, (condition_token_length + 1) * sizeof(Token));
+			condition_tokens[condition_token_length++] = condition_end_token;
+
+			Token *body_tokens = NULL;
+			int body_token_length = 0;
+
+			if (match(parser, Token_LeftBrace)) {
+				int brace_count = 1;
+
+				while (brace_count) {
+					Token body_token = peek(parser);
+
+					if (body_token.type == Token_EOF) {
+						printf("在第%d行发生错误，原因：缺少符号}\n", body_token.line);
+						exit(EXIT_FAILURE);
+					}
+
+					if (body_token.type == Token_LeftBrace) {
+						brace_count++;
+					} else if (body_token.type == Token_RightBrace) {
+						brace_count--;
+					}
+
+					if (brace_count) {
+						body_tokens = (Token *)realloc(body_tokens, (body_token_length + 1) * sizeof(Token));
+						body_tokens[body_token_length++] = body_token;
+						consume(parser);
+					} else {
+						match(parser, Token_RightBrace);
+					}
+				}
+
+				Token while_end_token = { Token_EOF, NULL, body_tokens[body_token_length - 1].line };
+				body_tokens = (Token *)realloc(body_tokens, (body_token_length + 1) * sizeof(Token));
+				body_tokens[body_token_length++] = while_end_token;
+			} else {
+				printf("在第%d行发生错误，原因：缺少符号{\n", token.line);
+				exit(EXIT_FAILURE);
+			}
+
+			while (true) {
+				Parser *condition_parser = (Parser *)malloc(sizeof(Parser));
+				condition_parser->tokens = condition_tokens;
+				condition_parser->token_length = condition_token_length;
+				condition_parser->current_index = 0;
+
+				Token condition_token = parse_expression(condition_parser);
+				Token true_token = { Token_Bool, "true", token.line };
+				condition_token = exp_and(condition_token, true_token);
+
+				if (strcmp(condition_token.value, "true") == 0) {
+					Parser *while_parser = (Parser *)malloc(sizeof(Parser));
+					while_parser->tokens = body_tokens;
+					while_parser->token_length = body_token_length;
+					while_parser->current_index = 0;
+
+					Module *while_module = (Module *)malloc(sizeof(Module));
+					while_module->variable_count = 0;
+					while_module->variables = NULL;
+					while_module->previous_module = get_current_module();
+					while_module->next_module = NULL;
+
+					get_current_module()->next_module = while_module;
+					Token return_token = parse_statement(while_parser, Statement_WHILE);
+					get_current_module()->previous_module->next_module = NULL;
+				} else {
+					free(body_tokens);
+					body_tokens = NULL;
+					body_token_length = 0;
+					break;
+				}
+			}
+		}
+	}
 }
 
 Token * get_tokens(char *src) {
